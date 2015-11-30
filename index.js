@@ -214,7 +214,7 @@ function createGeoJson (parsedJson) {
   }
 
   featureCollection.features = features;
-  fs.writeFile('Food Banks New.json', JSON.stringify(featureCollection));
+  fs.writeFile('Food Banks.geojson', JSON.stringify(featureCollection));
 }
 
 downloadXml();
