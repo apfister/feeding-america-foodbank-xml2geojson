@@ -39,7 +39,7 @@ function downloadXml() {
 
 function loadCountyGeoJson() {
   console.log( 'loading counties .geojson ..');
-  var countyGeoJsonFile = './us_counties_20m.json';
+  var countyGeoJsonFile = './geojson/us_counties_20m.json';
   countyGeoJson = JSON.parse( fs.readFileSync( countyGeoJsonFile ) );
 }
 
@@ -289,10 +289,10 @@ function createGeoJson (parsedJson, createCounties) {
   featureCollection.features = features;
 
   console.log( 'writing to .geojson file .. ' );
-  fs.writeFile('Food Banks.geojson', JSON.stringify(featureCollection));
+  fs.writeFile('./output/Food Banks.geojson', JSON.stringify(featureCollection));
 
   if (createCounties) {
-    fs.writeFile('Food Banks County.geojson', JSON.stringify(countyCollection));
+    fs.writeFile('./output/Food Banks County.geojson', JSON.stringify(countyCollection));
   }
 
   console.log( 'done!' );
