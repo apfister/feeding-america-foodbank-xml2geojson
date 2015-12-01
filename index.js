@@ -8,12 +8,17 @@ function parseBool(val) {
 
 function downloadXml() {
   var url = 'http://ws.feedingamerica.org/FAWebService.asmx/GetAllOrganizations';
+  
+  console.log( 'downloading xml from Feeding America ..' );
+
   http.get(url, function (res) {
+    console.log( 'parsing xml ..' );
     var xml = '';
     res.on('data', function (chunk) {
       xml += chunk;
     });  
     res.on('end', function () {
+      console.log( 'converting xml to json .. ' );
       var parsedJson = parser.toJson(xml);
 
       // fs.writeFile('outfromxml.json', parsedJson);
@@ -27,6 +32,7 @@ function downloadXml() {
 }
 
 function createGeoJson (parsedJson) {
+  console.log( 'creating GeoJson .. ' );
 
   var orgs = parsedJson.ArrayOfOrganization.Organization;
 
@@ -144,17 +150,17 @@ function createGeoJson (parsedJson) {
     }
 
     if (org.AgenciesServedStats) {
-      var ass = org.AgenciesServedStats;
-      props.AgenciesServed_EmergencyBox = parseInt(ass.EmergencyBox);
-      props.AgenciesServed_SoupKitchens = parseInt(ass.SoupKitchens);
-      props.AgenciesServed_Shelters = parseInt(ass.Shelters);
-      props.AgenciesServed_Residential = parseInt(ass.Residential);
-      props.AgenciesServed_DayCare = parseInt(ass.DayCare);
-      props.AgenciesServed_MultiService = parseInt(ass.MultiService);
-      props.AgenciesServed_Senior = parseInt(ass.Senior);
-      props.AgenciesServed_Rehabilitation = parseInt(ass.Rehabilitation);
-      props.AgenciesServed_YouthPrograms = parseInt(ass.YouthPrograms);
-      props.AgenciesServed_Other = parseInt(ass.Other);
+      var agencies = org.AgenciesServedStats;
+      props.AgenciesServed_EmergencyBox = parseInt(agencies.EmergencyBox);
+      props.AgenciesServed_SoupKitchens = parseInt(agencies.SoupKitchens);
+      props.AgenciesServed_Shelters = parseInt(agencies.Shelters);
+      props.AgenciesServed_Residential = parseInt(agencies.Residential);
+      props.AgenciesServed_DayCare = parseInt(agencies.DayCare);
+      props.AgenciesServed_MultiService = parseInt(agencies.MultiService);
+      props.AgenciesServed_Senior = parseInt(agencies.Senior);
+      props.AgenciesServed_Rehabilitation = parseInt(agencies.Rehabilitation);
+      props.AgenciesServed_YouthPrograms = parseInt(agencies.YouthPrograms);
+      props.AgenciesServed_Other = parseInt(agencies.Other);
     }
 
     // executive director
@@ -214,7 +220,11 @@ function createGeoJson (parsedJson) {
   }
 
   featureCollection.features = features;
+
+  console.log( 'writing to .geojson file .. ' );
   fs.writeFile('Food Banks.geojson', JSON.stringify(featureCollection));
+
+  console.log( 'done!' );
 }
 
 downloadXml();
