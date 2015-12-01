@@ -1,3 +1,4 @@
-.geojson
+*.geojson
+*.json
 
 node_modules

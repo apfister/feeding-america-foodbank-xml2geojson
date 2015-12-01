@@ -2,6 +2,9 @@ var http = require('http');
 var parser = require('xml2json');
 var fs = require('fs');
 
+var countyGeoJson = null;
+var countyCollection = null;
+
 function parseBool(val) {
   return val === 'true' ? 'Yes' : 'No';
 }
@@ -21,9 +24,12 @@ function downloadXml() {
       console.log( 'converting xml to json .. ' );
       var parsedJson = parser.toJson(xml);
 
-      // fs.writeFile('outfromxml.json', parsedJson);
+      // fs.writeFile('convertedFromXml.json', parsedJson);
+      // return;
 
-      createGeoJson( JSON.parse(parsedJson) );
+      var jsonObj = JSON.parse(parsedJson);
+
+      createGeoJson( jsonObj, true );
 
     })
   }).on('error', function(error) {
@@ -31,8 +37,34 @@ function downloadXml() {
   });
 }
 
-function createGeoJson (parsedJson) {
+function loadCountyGeoJson() {
+  console.log( 'loading counties .geojson ..');
+  var countyGeoJsonFile = './us_counties_20m.json';
+  countyGeoJson = JSON.parse( fs.readFileSync( countyGeoJsonFile ) );
+}
+
+function fetchCounty(fips) {
+  var feature, toFind;
+  for (var i=0;i < countyGeoJson.features.length;i++) {
+    toFind = countyGeoJson.features[i].properties.STATE + countyGeoJson.features[i].properties.COUNTY; 
+    if (fips === toFind) {
+      feature = countyGeoJson.features[i];
+      break;
+    }
+  }
+  return feature;
+}
+
+function createGeoJson (parsedJson, createCounties) {
   console.log( 'creating GeoJson .. ' );
+
+  if (createCounties) {
+    loadCountyGeoJson();
+    countyCollection = {
+      'type' : 'FeatureCollection',
+      'features' : []
+    };
+  }
 
   var orgs = parsedJson.ArrayOfOrganization.Organization;
 
@@ -217,12 +249,51 @@ function createGeoJson (parsedJson) {
     feature.properties = props;
 
     features.push( feature );
+
+    if (createCounties && org.ListFipsCounty) {
+      var counties = org.ListFipsCounty.LocalFindings;
+      var county, fips, newCounty;
+      if (!counties.length) {
+        counties = [counties];
+      }
+      for (var j=0;j < counties.length;j++) {
+        county = counties[j];
+        fips = county.FipsCode;
+        geoJsonCounty = fetchCounty( fips );
+        // console.log(geoJsonCounty);
+
+        newCounty = {
+          "type" : "Feature",
+          "properties" : {
+            "OrgEntityID": org.EntityID,
+            "FIPS" : fips,
+            "CountyName" : county.CountyName,
+            "State" : county.State,
+            "COUNTY_POP" : parseInt(county.COUNTY_POP),
+            "COUNTY_FI_RATE" : parseFloat(county.COUNTY_FI_RATE),
+            "COUNTY_POP_FI" : parseInt(county.COUNTY_POP_FI),
+            "COST_PER_MEAL" : parseFloat(county.COST_PER_MEAL),
+            "CHILD_FI_PCT" : parseFloat(county.CHILD_FI_PCT),
+            "CHILD_FI_COUNT" : parseInt(county.CHILD_FI_COUNT),
+            "CHILD_FI_BELOW_PCT" : parseFloat(county.CHILD_FI_BELOW_PCT),
+            "CHILD_FI_ABOVE_PCT" : parseFloat(county.CHILD_FI_ABOVE_PCT)
+          },
+          "geometry" : geoJsonCounty.geometry
+        };
+
+        countyCollection.features.push( newCounty );
+      }
+    }
   }
 
   featureCollection.features = features;
 
   console.log( 'writing to .geojson file .. ' );
   fs.writeFile('Food Banks.geojson', JSON.stringify(featureCollection));
+
+  if (createCounties) {
+    fs.writeFile('Food Banks County.geojson', JSON.stringify(countyCollection));
+  }
 
   console.log( 'done!' );
 }
